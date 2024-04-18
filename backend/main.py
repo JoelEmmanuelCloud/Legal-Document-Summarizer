@@ -1,7 +1,7 @@
-import boto3
-import json
 import os
 from dotenv import load_dotenv
+import boto3
+import json
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -18,8 +18,8 @@ bedrock = boto3.client(
 
 # Function to summarize a document
 def summarize_document(document_path):
-    # Read document content
-    with open(document_path, 'r', encoding='utf-8') as file:
+    # Read document content in binary mode
+    with open(document_path, 'rb') as file:
         document_content = file.read()
 
     # prompt for summarizing the document

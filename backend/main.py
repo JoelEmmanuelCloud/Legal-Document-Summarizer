@@ -1,7 +1,9 @@
+from flask import Flask, request, jsonify
+import base64
 import os
-from dotenv import load_dotenv
 import boto3
 import json
+from dotenv import load_dotenv
 
 # Load environment variables from the .env file
 load_dotenv()
@@ -16,30 +18,30 @@ bedrock = boto3.client(
     aws_session_token=os.getenv("AWS_SESSION_TOKEN")
 )
 
-# Function to summarize a document
-def summarize_document(document_path):
-    # Read document content in binary mode
-    with open(document_path, 'rb') as file:
-        document_content = file.read()
+app = Flask(__name__)
 
-    # prompt for summarizing the document
-    prompt = """
+@app.route('/summarize', methods=['POST'])
+def summarize_document():
+    document_file = request.files['document']
+    document_content = document_file.read()
+    document_content_base64 = base64.b64encode(document_content).decode('utf-8')
+
+    prompt = f"""
     Human: Summarize the legal document.
 
     Instructions:
     - Provide a summary of the document.
     - Identify key points, arguments, and conclusions.
 
-    Document Content:
-    {}
+    Document Content (Base64 Encoded):
+    {document_content_base64}
 
     Assistant:
-    """.format(document_content)
+    """
 
-    # Call Bedrock API to summarize document
-    return process_prompt(prompt)
+    response = process_prompt(prompt)
+    return jsonify({'summary': response})
 
-# Function to process the prompt and obtain response
 def process_prompt(prompt):
     body = json.dumps({
         "prompt": prompt,
@@ -65,21 +67,5 @@ def process_prompt(prompt):
     else:
         return None
 
-# Main function to summarize documents in each folder
-def main():
-    documents_dir = 'documents'
-    for folder_name in os.listdir(documents_dir):
-        folder_path = os.path.join(documents_dir, folder_name)
-        if os.path.isdir(folder_path):
-            print(f"Summarizing documents in {folder_name} folder:")
-            for file_name in os.listdir(folder_path):
-                file_path = os.path.join(folder_path, file_name)
-                if os.path.isfile(file_path):
-                    print(f"Summarizing document: {file_name}")
-                    document_summary = summarize_document(file_path)
-                    print("Summary:", document_summary)
-                    print("------------------------------------------")
-
-# Entry point of the script
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
